@@ -1,0 +1,222 @@
+---
+title: "Task 4"
+output: html_document
+date: "2023-02-22"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Halloween Candy Data 
+
+```{r, include = FALSE}
+ # install/load packages 
+library(tidyverse)
+library(readr)
+# install.packages("readxl")
+library(readxl)
+library(tidyr)
+library(lubridate)
+library(stringr)
+library(janitor)
+library(assertr)
+library(knitr)
+
+```
+
+### Introduction 
+
+This project cleans and investigates three datasets about Halloween candy popularity. The data was collected by BoinBoing, and can be found here: https://www.scq.ubc.ca/so-much-candy-data-seriously/. The surveys, which are from 2015, 2016 and 2017, includes demographic information as well as information about candy preferences, rated by the feeling of "Joy", "Despair", or "Meh". While cleaning the demographic variables, I grouped countries like "Trumpistan", "Merrica" and "Pittsburgh" with the US, but counted any ambiguous inputs, such as "Ud", as missing. I also assumed that someone under the age of 5 and over the age of 105 would not have been able to participate in the survey, and changed any values outwith that range to missing. In order to appropriately answer the analysis questions, I then removed any items from the candy column that clearly were not candy, such as other food items or TV shows. I also removed candy items that were vaguely described, such as "any sized candy bar", and candy items that had a value judgment attached to them, such as "Those odd marshmallow circus peanut things" and "Jolly Rancher (bad flavor)". Moreover, I removed candy items with ambiguous meanings, such as "Spotted Dick", "Pencils" and "Nerds". 
+
+**Data Cleaning**
+
+The full changes made to the data can be found in cleaning_script.R in the cleaning_script folder. I changed the data from each year to a tidy format, selected columns that were relevant for the analysis, renamed column names to align between the datasets, and cleaned some of the column content in each of them. I then joined the three datasets and tidied the columns further based on my assumptions about relevant ages, country spellings and appropriate candy items.  
+
+**Analysis Questions** 
+
+I used the clean data to answer the following questions: 
+
+1. What is the total number of candy ratings given across the three years. (Number of candy ratings, not the number of raters. Don’t count missing values)
+
+2. What was the average age of people who are going out trick or treating?
+
+3. What was the average age of people who are not going trick or treating?
+
+4. For each of joy, despair and meh, which candy bar received the most of these ratings?
+
+5. How many people rated Starburst as despair?
+
+For the next three questions, count despair as -1, joy as +1, and meh as 0.
+
+6. What was the most popular candy bar by this rating system for each gender in the dataset ?
+
+7. What was the most popular candy bar in each year?
+
+8. What was the most popular candy bar by this rating for people in US, Canada, UK, and all other countries?
+
+
+### Analysis 
+
+```{r, include = FALSE}
+# read in the data 
+
+candy_clean <- read_csv("../clean_data/candy_clean_data.csv")
+
+
+```
+
+
+**Question 1** 
+
+To find the total number of candy ratings across the three years, I dropped the NAs in the feeling column and summed the remaining number of observations to get the total number of candy ratings. The total number of candy ratings was 772352. 
+
+
+```{r, include = FALSE}
+
+# 1.What is the total number of candy ratings given across the three years. (Number of candy ratings, not the number of raters. Don’t count missing values)
+
+
+candy_clean %>% 
+ select(feeling) %>% 
+ drop_na()%>% 
+ summarise(sum(n())) %>% 
+ pull()
+
+```
+
+**Question 2** **and** **Question 3** 
+
+To find the average age of those going trick or treating or not going trick or treating, I filtered the data for age values under 14, since people above this age very rarely even consider going out trick or treating for Halloween. I grouped the data by whether participants were going out trick or treating or not, and then used the mean function to get the average age for each group. Missing values were excluded in the calculation. The average age for people staying in was 12, and for those going out 11, which can be seen in the table below. It is however likely that the average age of children going trick or treating is lower, since young children likely would not have filled out the surveys. 
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+
+# What was the average age of people who are going out trick or treating?
+
+# What was the average age of people who are not going trick or treating?
+
+candy_clean %>% 
+  select(age, going_out) %>% 
+  filter(age <= 14) %>% 
+  group_by(going_out) %>% 
+  drop_na() %>% 
+  summarise(average_age_trick_or_treat = round(mean(as.numeric(age)))) %>% 
+  kable()
+
+
+
+```
+
+**Question 4** 
+
+In order to calculate what candy bar received the most ratings by each feelings, I grouped the data by candy and feeling, excluded missing values, and summed the number of observations by feeling for each candy. The table below displays the number of ratings for the most highly rated candy type by feeling. 
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+
+# For each of joy, despair and meh, which candy bar received the most of these ratings?
+
+
+candy_clean %>% 
+  select(candy,feeling) %>% 
+  group_by(feeling, candy) %>% 
+  drop_na() %>% 
+  summarise(rating_count = sum(n())) %>% 
+  arrange(desc(rating_count)) %>% 
+  slice_head() %>% 
+  kable() 
+
+
+
+```
+
+**Question 5** 
+
+In order to calculate how many people rated Starburst as despair, I filtered the data for Starburst and Despair, and counted the number of observations. The calculation found that 1990 people rated Starburst as Despair. 
+
+```{r, include = FALSE}
+# How many people rated Starburst as despair?
+
+candy_clean %>% 
+  select(candy,feeling) %>% 
+  filter(candy == "Starburst", feeling == "Despair") %>% 
+  summarise(starburst_despair_ratings = sum(n())) %>% 
+  pull()
+  
+
+
+```
+
+**Question 6** 
+
+In order to find the most popular candy bar for each gender, I coded the feeling variable as -1 for Despair, +1 for Joy and 0 for Meh. I then grouped the data by candy and gender, excluded missing values, and summed remaining number of ratings for each candy type and gender. The most popular candy types by gender are shown in the table below. 
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE }
+
+# For the next three questions, count despair as -1, joy as +1, and meh as 0.
+
+# What was the most popular candy bar by this rating system for each gender in the dataset?
+
+candy_clean %>% 
+  select(candy,gender,feeling) %>% 
+  mutate(feeling = (recode(feeling, "Despair" = -1, "Joy" = +1, "Meh" = 0))) %>% 
+  group_by(gender,candy) %>% 
+  drop_na() %>% 
+  summarise(rating_count_recoded = sum(feeling)) %>% 
+  arrange(desc(rating_count_recoded)) %>% 
+  slice_head() %>% 
+  kable() 
+
+
+
+```
+**Question 7** 
+
+In order to find the most popular candy bar in each year, the feeling ratings were coded as above, but the data grouped by year and candy type. Missing values were excluded when the ratings were summed. The most popular candy bars by year is shown in the table below. 
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+
+# What was the most popular candy bar in each year?
+
+candy_clean %>% 
+  select(candy,year,feeling) %>% 
+  mutate(feeling = (recode(feeling, "Despair" = -1, "Joy" = +1, "Meh" = 0))) %>% 
+  group_by(year,candy) %>% 
+  drop_na() %>% 
+  summarise(rating_count_year = sum(feeling)) %>% 
+  arrange(desc(rating_count_year)) %>% 
+  slice_head() %>% 
+  kable() 
+
+```
+
+**Question 8** 
+
+In order to find the most popular candy bar by the same rating by country, I grouped the data by country and candy, and summed the feeling ratings for each country. Again, missing values were excluded in the calculation. The most popular candy bar by country is shown in the table below. Although ratings from people in other countries than the US are rare, the table indicates that 100 grand bar, buttefringer and M&Ms may be more popular than Reese’s Peanut Butter Cups across the world. 
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+
+
+# What was the most popular candy bar by this rating for people in US, Canada, UK, and all other countries?
+
+
+candy_clean %>% 
+  select(candy,country,feeling) %>% 
+  mutate(feeling = (recode(feeling, "Despair" = -1, "Joy" = +1, "Meh" = 0))) %>% 
+  group_by(country,candy) %>% 
+  drop_na() %>% 
+  summarise(rating_count_candy = sum(feeling)) %>% 
+  arrange(desc(rating_count_candy)) %>% 
+  slice_head() %>% 
+  kable() 
+
+
+
+```
+
+### Conclusions 
+
+The analysis indicates that Reese’s Peanut Butter Cups is a very popular type of Halloween candy, preferred by both men and women. However, the survey data comes almost primarily from people in the US. Although data from other countries is limited, other candy types, such as the 100 Grand Bar, may be more popular globally. 
+
+
+
+

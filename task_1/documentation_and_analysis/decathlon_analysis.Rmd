@@ -1,0 +1,143 @@
+---
+title: "Task 1"
+output: html_document
+date: "2023-02-20"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include = FALSE}
+
+# load libraries 
+
+library(readr)
+library(tidyverse)
+library(janitor)
+library(tidyr)
+library(dplyr)
+library(stringr)
+library(here)
+library(knitr)
+
+```
+
+## Decathlon Data 
+
+
+### Introduction 
+
+In this project, I worked with data on decathlon performance from the Decastar competition and from the Olympic Games. The data included information on the participant name, event, performance, rank and points, both for the Olympics and the Decastar. I cleaned the data to a tidy format and tidied up column names and positions. The full changes made to the data can be found in clean_data.R in the data_cleaning_scripts folder. I used the clean data to answer the following questions: 
+
+1. Who had the longest long jump seen in the data?
+2. What was the average 100m time in each competition?
+3. Who had the highest total points across both competitions?
+4. What was the shot-put scores for the top three competitors in each competition?
+5. What was the average points for competitors who ran the 400m in less than 50 seconds vs. those than ran 400m in more than 50 seconds?
+
+```{r, include = FALSE}
+
+# read in the csv file of the cleaned data 
+
+decathlon_data_cleaned <- read_csv("../clean_data/decathlon_clean_data.csv")
+
+```
+
+### Analysis 
+
+**Question 1**
+
+In order to find who had the longest long jump in the data, I filtered the data to only include the event long jump, and arranged the results in order of performance score. The table below shows that Clay had the longest long jump. 
+
+```{r, echo = FALSE, warning = FALSE, method = FALSE}
+
+# Who had the longest long jump seen in the data?
+
+decathlon_data_cleaned %>% 
+  select(name,event,performance) %>% 
+  filter(event == "Long jump") %>% 
+  arrange(desc(performance)) %>% 
+  head(1) %>% 
+  kable()
+  
+
+```
+
+**Question 2**
+
+In order to find the average 100m time for each competition, I filtered the data for the 100m event and grouped it by competition. I then used the mean function on the remaining data, and found that the average 100m time was 11.18 for Decastar and 10.92 for the Olympics. 
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+# What was the average 100m time in each competition? 
+
+decathlon_data_cleaned %>% 
+  select(competition, event, performance) %>% 
+  filter(event == "100m") %>% 
+  group_by(competition) %>% 
+  summarise(mean_competition = round(mean(performance),2)) %>% 
+  kable() 
+
+
+```
+**Question 3**
+
+In order to find out who had the highest total points across both competitions, I grouped the data by name, and then summed the points for each person. The calculation found that Sebrle had the highest total points across both competitions, as the table below shows. 
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+
+# Who had the highest total points across both competitions?
+
+decathlon_data_cleaned %>% 
+  select(name,points) %>% 
+  group_by(name) %>% 
+  summarise(total_points = sum(points)) %>% 
+  arrange(desc(total_points)) %>% 
+  head(1) %>% 
+  kable()
+  
+
+```
+**Question 4**
+
+In order to find the shot-put scores for the top three competitors in each competition, I filtered the data to only include shot put and grouped it by competition. The table below shows the data arranged by performance scores, and displays only the shot-put scores for the top three competitors in Decastar and the Olympics. 
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+
+# What was the shot-put scores for the top three competitors in each competition?
+
+decathlon_data_cleaned %>% 
+  select(name,event,performance,competition) %>% 
+  filter(event == "Shot put") %>% 
+  group_by(competition) %>% 
+  arrange(desc(performance)) %>% 
+  slice_head(n = 3) %>% 
+  kable()
+
+
+
+```
+
+**Question 5**
+
+In order to find the average points for competitors who ran the 400m in less than 50 seconds vs those that ran it in more than 50 seconds, I filtered out the 400m event and grouped it by whether the performance was less or more than 50 seconds, to then calculate the average by group. The table below shows that the average points for competitors who ran the 400m in less than 50 seconds was 8120.483 points, while the average points for those wo ran it in more than 50 seconds was 7727.167. 
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+
+# What was the average points for competitors who ran the 400m in less than 50 seconds vs. those than ran 400m in more than 50 seconds?
+
+decathlon_data_cleaned %>% 
+  select(points, event, performance) %>% 
+  filter(event == "400m") %>% 
+  mutate(grouped_400m = ifelse(performance < 50, "Less than 50 seconds", "More than 50 seconds")) %>% 
+  group_by(grouped_400m) %>% 
+  summarise(average_points = mean(points)) %>% 
+  kable()
+
+
+
+```
+### Conclusions
+
+The analysis revealed that decathlon competitors tend to perform better in the Olympics than in the Decastar. 
+

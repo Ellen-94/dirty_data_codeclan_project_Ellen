@@ -1,0 +1,147 @@
+---
+title: "Task 2"
+output: html_document
+date: "2023-02-23"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include = FALSE}
+# install/load packages 
+library(tidyverse)
+library(tidyr)
+library(dplyr)
+library(janitor)
+library(stringr)
+library(knitr)
+
+```
+
+## Cake ingredients
+
+### Introduction 
+
+This projects combines cake recipe data with additional data of full ingredient names, in order to answer questions about cakes and their ingredients. I joined the two datasets, changed the combined data to a tidy format, and cleaned column/row names. The full changes made to the data can be found in task_2_cleaning_script.R in the data_cleaning_scripts folder within the R project for this task. I used the clean data to answer the following analysis questions: 
+
+1. Which cake has the most cocoa in it?
+
+2. For sponge cake, how many cups of ingredients are used in total?
+
+3. How many ingredients are measured in teaspoons?
+
+4. Which cake has the most unique ingredients?
+
+5. Which ingredients are used only once?
+
+### Analysis 
+
+```{r, include = FALSE}
+# read in the csv file 
+
+cake_clean <- read_csv("../clean_data/cake_clean_data.csv")
+
+```
+
+**Question 1**
+
+In order to find which cake had the most cocoa in it, I filtered the data to only include cakes containing cocoa. I then grouped the data by cake and measurement type in order to sum the quantity of cocoa for each cake. The data arranged by order of cocoa amount found that One Bowl Chocolate had the most cocoa, with 10 tablespoons. 
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+
+# Which cake has the most cocoa in it?
+
+cake_clean %>%  
+  select(cake,ingredient_name,quantity, measure) %>% 
+  filter(ingredient_name == "Cocoa") %>% 
+  group_by(cake,measure) %>% 
+  summarise(total_cocoa_amount = sum(quantity, na.rm = TRUE)) %>% 
+  arrange(desc(total_cocoa_amount)) %>% 
+  head(1) %>% 
+  kable() 
+
+
+```
+
+**Question 2** 
+
+To find how many cups of ingredients were used for sponge cake, I filtered the data to only include Sponge cakes and cup measurements. I then calculated the summed quantity of cups, excluding missing values. The calculation found that 3.5 cups in total was used for sponge cakes.  
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+# For sponge cake, how many cups of ingredients are used in total?
+
+cake_clean %>% 
+  drop_na() %>% 
+  select(cake,measure, quantity) %>% 
+  filter(cake == "Sponge", measure == "Cup")%>% 
+  summarise(cups_total = sum(quantity)) %>% 
+  kable()
+  
+
+
+```
+
+**Question 3** 
+
+In order to find how many ingredients were measured in teaspoons, I filtered the data for rows that only contained "Teaspoon" and counted the number of unique ingredient observations for the remaining data. The calculation found that 8 ingredients were measured in teaspoons. 
+
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+# How many ingredients are measured in teaspoons?
+
+cake_clean %>%  
+  select(ingredient_name, measure) %>% 
+  filter(measure == "Teaspoon") %>%  
+  summarise(distinct_ingredients = n_distinct(ingredient_name)) %>% 
+  kable() 
+
+
+```
+
+**Question 4** 
+
+To find the cake with the most unique ingredients, I listed a combination of unique cake and ingredient names. I then grouped the data by cake in order to summarise the amount of ingredient observations for each cake. Missing values were excluded from the calculation. The data was arranged in descending order by count, showing that Babas au Rhum had the most uniqe ingredients.  
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+# Which cake has the most unique ingredients?
+
+cake_clean %>% 
+  drop_na() %>% 
+  distinct(cake, ingredient_name) %>% 
+  group_by(cake) %>% 
+  summarise(ingredient_count = n()) %>% 
+  arrange(desc(ingredient_count)) %>% 
+  slice_head(n=1) %>% 
+  kable() 
+
+
+```
+
+**Question 5**
+
+In order to find the ingredients that were used only once in a cake, I grouped the data by ingredient name and then counted the number of cakes that corresponded to only one ingredient name. I then filtered the data for the ingredients that were used only once. See the table of those ingredients below. 
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+# Which ingredients are used only once?
+
+ cake_clean %>% 
+  drop_na() %>% 
+  select(cake,ingredient_name) %>% 
+  group_by(ingredient_name) %>% 
+  summarise(use_count = n_distinct(cake)) %>% 
+  filter(use_count == 1) %>% 
+  kable() 
+
+
+
+```
+
+### Conclusions 
+
+The analysis gave some insights into what cake recipies will be difficult and expensive to make, such as Babas au Rhum, which contains a lot of unique ingredients. Buch de Noel should be easier, with only 5 unique ingredients. It also gave some insight into what ingredients are less important to stock at home in case one feels like making a cake, as they appear in only one cake. 
+
+
+
+
+
